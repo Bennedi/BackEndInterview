@@ -1,17 +1,14 @@
 package com.example.Book;
 
+import org.springframework.batch.core.JobParameter;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/books")
@@ -22,8 +19,10 @@ public class BookController {
     public BookController(BookService bookService) {
         this.bookService = bookService;
     }
+
     //Paging and Sorting
-    @RequestMapping("/")
+    @GetMapping("/")
+    @Cacheable(value="booksCache")
     public Page<Books> getAllBooks (
             @RequestParam(defaultValue = "1") int pageNumber,
             @RequestParam(defaultValue = "5") int pageSize,
@@ -33,14 +32,27 @@ public class BookController {
         return bookService.getBookPagination(pageNumber,pageSize,sort);
     }
 
-    @RequestMapping("/{pageNumber}/{pageSize}/sortType")
+    //ExportToCSVFilw
+
+    @PostMapping("/exportBooksToCsv")
+    public String exportBooksToCsv (){
+        return bookService.exportBooksToCsv();
+    }
+
+
+    @GetMapping("/search/{search}")
+    public List<Books> getBooksByTitleOrAuthor (@PathVariable String search){
+        return bookService.findBooksByTitleOrAuthor(search);
+    }
+
+    @GetMapping("/{pageNumber}/{pageSize}/{sortType}")
     public Page<Books> getAllBooksBySortType  (
-            @RequestParam int pageNumber,
-            @RequestParam int pageSize,
-            @RequestParam String sort
+            @PathVariable int pageNumber,
+            @PathVariable int pageSize,
+            @PathVariable String sortType
     )
     {
-        return bookService.getBookPagination(pageNumber,pageSize,sort);
+        return bookService.getBookPagination(pageNumber,pageSize,sortType);
     }
 
     @GetMapping("/genre/{designation}")
@@ -64,18 +76,21 @@ public class BookController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/create")
+    @CacheEvict(value = "booksCache", allEntries = true)
     public Books createBook(@RequestBody Books books) {
         return bookService.addBook(books);
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/{id}")
+    @CacheEvict(value = "booksCache", allEntries = true)
     public Books updateBook(@PathVariable Long id, @RequestBody Books books) {
         return bookService.updateBook(id, books);
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "booksCache", allEntries = true)
     public void deleteBook(@PathVariable int id) {
         bookService.deleteBookById((long) id);
     }

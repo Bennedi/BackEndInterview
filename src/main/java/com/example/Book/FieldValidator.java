@@ -51,4 +51,11 @@ public class FieldValidator {
             throw new CustomException(errors);
         }
     }
+
+    public void validateDesignation(String designation) {
+        List<String> errors = new ArrayList<>();
+        if (designation == null || designation.isBlank()) {
+            errors.add("Designation cannot be null or empty");
+        }
+    }
 }
